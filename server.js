@@ -1,7 +1,8 @@
 const express = require("express");
 const app = express();
 
-app.use(express.static("public", {
+// serving "." serves up the server code too. this is fine.
+app.use(express.static(".", {
   setHeaders: function(res, path) {
     res.set("Cross-Origin-Opener-Policy", "same-origin");
     res.set("Cross-Origin-Embedder-Policy", "require-corp");
