@@ -1,5 +1,5 @@
-<canvas id="cvs2d" style="border: 1px solid #080"></canvas>
-<canvas id="cvsgl" style="border: 1px solid #a00"></canvas>
+<canvas id="cvs2d" style="border: 1px solid #0a0"></canvas>
+<canvas id="cvsgl" style="border: 1px solid #b00"></canvas>
 <br />
 <pre id="out">Logs:</pre>
 <script async>
@@ -20,7 +20,8 @@
   })();
 
   function logTiming(desc, t0) {
-    log('  ' + desc.padEnd(12), (performance.now() - t0).toFixed(3).padStart(7));
+    const ms = (performance.now() - t0).toFixed(2);
+    log(`  ${desc.padEnd(12)} ${ms.padStart(6)} ms`);
   }
 
   async function makeReadyImg(onload, decode) {
@@ -37,7 +38,7 @@
     if (decode) {
       t0 = performance.now();
       await img.decode();
-      logTiming('img.decode()', t0);
+      logTiming("img.decode()", t0);
     }
     return img;
   }
@@ -50,7 +51,7 @@
 
       t0 = performance.now();
       ctx.drawImage(img, -img.width / 2, -img.height / 2);
-      logTiming('drawImage()', t0);
+      logTiming("drawImage()", t0);
     } else if (api === "webgl") {
       const gl = cvsgl.getContext("webgl");
       const tex = gl.createTexture();
@@ -58,7 +59,23 @@
 
       t0 = performance.now();
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-      logTiming('texImage2D()', t0);
+      logTiming("texImage2D()", t0);
+    } else if (api === "webgpu") {
+      const adapter = await navigator.gpu.requestAdapter();
+      const device = await adapter.requestDevice();
+      const texture = device.createTexture({
+        format: "rgba8unorm",
+        size: [4, 4],
+        usage: GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT,
+      });
+
+      t0 = performance.now();
+      device.queue.copyExternalImageToTexture(
+        { source: img },
+        { texture },
+        [4, 4]
+      );
+      logTiming("copyEI2T()", t0);
     } else {
       log("  unknown api");
     }
@@ -74,6 +91,10 @@
     await test("webgl", true, false);
     await test("webgl", true, true);
     await test("webgl", false, true);
+    log("");
+    await test("webgpu", true, false);
+    await test("webgpu", true, true);
+    await test("webgpu", false, true);
   }
 
   setTimeout(draw, 100);
