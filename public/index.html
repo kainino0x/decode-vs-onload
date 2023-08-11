@@ -1,0 +1,80 @@
+<canvas id="cvs2d" style="border: 1px solid #080"></canvas>
+<canvas id="cvsgl" style="border: 1px solid #a00"></canvas>
+<br />
+<pre id="out">Logs:</pre>
+<script async>
+  const kURL = "./nasa_12MP.jpg";
+
+  let t0;
+
+  function log(...s) {
+    console.log(...s);
+    out.innerText += "\n" + s.join(" ");
+  }
+
+  const defeatCaching = (() => {
+    let n = 1;
+    return () => {
+      return n++;
+    };
+  })();
+
+  function logTiming(desc, t0) {
+    log('  ' + desc.padEnd(12), (performance.now() - t0).toFixed(3).padStart(7));
+  }
+
+  async function makeReadyImg(onload, decode) {
+    const src = kURL + "?n=" + defeatCaching();
+
+    const img = document.createElement("img");
+    const loaded = new Promise((resolve) => (img.onload = resolve));
+    img.src = src;
+    if (onload) {
+      t0 = performance.now();
+      await loaded;
+      logTiming("img.onload", t0);
+    }
+    if (decode) {
+      t0 = performance.now();
+      await img.decode();
+      logTiming('img.decode()', t0);
+    }
+    return img;
+  }
+
+  async function test(api, onload, decode) {
+    log("test:", api, "onload=" + onload, "decode=" + decode);
+    const img = await makeReadyImg(onload, decode);
+    if (api === "2d") {
+      const ctx = cvs2d.getContext("2d");
+
+      t0 = performance.now();
+      ctx.drawImage(img, -img.width / 2, -img.height / 2);
+      logTiming('drawImage()', t0);
+    } else if (api === "webgl") {
+      const gl = cvsgl.getContext("webgl");
+      const tex = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+
+      t0 = performance.now();
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+      logTiming('texImage2D()', t0);
+    } else {
+      log("  unknown api");
+    }
+  }
+
+  async function draw() {
+    log("crossOriginIsolated", window.crossOriginIsolated);
+    log("");
+    await test("2d", true, false);
+    await test("2d", true, true);
+    await test("2d", false, true);
+    log("");
+    await test("webgl", true, false);
+    await test("webgl", true, true);
+    await test("webgl", false, true);
+  }
+
+  setTimeout(draw, 100);
+</script>
