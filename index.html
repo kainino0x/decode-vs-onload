@@ -3,6 +3,7 @@
 <br />
 <pre id="out">Logs:</pre>
 <script async>
+  // You can switch to a larger test file here - but chrome and safari choke on them
   const kURL = "./nasa_12MP.jpg";
 
   let t0;
@@ -12,20 +13,13 @@
     out.innerText += "\n" + s.join(" ");
   }
 
-  const defeatCaching = (() => {
-    let n = 1;
-    return () => {
-      return n++;
-    };
-  })();
-
   function logTiming(desc, t0) {
     const ms = (performance.now() - t0).toFixed(2);
     log(`  ${desc.padEnd(12)} ${ms.padStart(6)} ms`);
   }
 
   async function makeReadyImg(onload, decode) {
-    const src = kURL + "?n=" + defeatCaching();
+    const src = `${kURL}?t=${new Date().getTime()}`;
 
     const img = document.createElement("img");
     const loaded = new Promise((resolve) => (img.onload = resolve));
@@ -87,14 +81,17 @@
     await test("2d", true, false);
     await test("2d", true, true);
     await test("2d", false, true);
+    await test("2d", true, false);
     log("");
     await test("webgl", true, false);
     await test("webgl", true, true);
     await test("webgl", false, true);
+    await test("webgl", true, false);
     log("");
     await test("webgpu", true, false);
     await test("webgpu", true, true);
     await test("webgpu", false, true);
+    await test("webgpu", true, false);
   }
 
   setTimeout(draw, 100);
