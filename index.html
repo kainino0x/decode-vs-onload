@@ -6,6 +6,10 @@
   // You can switch to a larger test file here - but chrome and safari choke on them
   const kURL = "./nasa_12MP.jpg";
 
+  // These cases are disabled because they're less interesting: we already
+  // know decode() will include network time if not loaded already.
+  const investigateOnload = false;
+
   let t0;
 
   function log(...s) {
@@ -27,7 +31,7 @@
     if (onload) {
       t0 = performance.now();
       await loaded;
-      logTiming("img.onload", t0);
+      if (investigateOnload) logTiming("img.onload", t0);
     }
     if (decode) {
       t0 = performance.now();
@@ -37,8 +41,8 @@
     return img;
   }
 
-  async function test(api, onload, decode) {
-    log("test:", api, "onload=" + onload, "decode=" + decode);
+  async function test(api, onload, decode, comment) {
+    log("test:", api, "onload=" + onload, "decode=" + decode, comment);
     const img = await makeReadyImg(onload, decode);
     if (api === "2d") {
       const ctx = cvs2d.getContext("2d");
@@ -77,21 +81,25 @@
 
   async function draw() {
     log("crossOriginIsolated", window.crossOriginIsolated);
+
     log("");
     await test("2d", true, false);
     await test("2d", true, true);
-    await test("2d", false, true);
-    await test("2d", true, false);
+    await test("2d", true, true, "retry");
+    if (investigateOnload) await test("2d", false, true);
+    await test("2d", true, false, "retry");
     log("");
     await test("webgl", true, false);
     await test("webgl", true, true);
-    await test("webgl", false, true);
-    await test("webgl", true, false);
+    await test("webgl", true, true, "retry");
+    if (investigateOnload) await test("webgl", false, true);
+    await test("webgl", true, false, "retry");
     log("");
     await test("webgpu", true, false);
     await test("webgpu", true, true);
-    await test("webgpu", false, true);
-    await test("webgpu", true, false);
+    await test("webgpu", true, true, "retry");
+    if (investigateOnload) await test("webgpu", false, true);
+    await test("webgpu", true, false, "retry");
   }
 
   setTimeout(draw, 100);
